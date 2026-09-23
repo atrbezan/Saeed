@@ -1,0 +1,12 @@
+services:
+  instagram-telegram-bot:
+    build: .
+    container_name: ig_to_tg_agent
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./state.json:/app/state.json
+      - ./downloads:/app/downloads
+      # If using cookies:
+      # - ./cookies.txt:/app/cookies.txt
