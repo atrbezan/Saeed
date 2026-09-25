@@ -1,9 +1,11 @@
 """
 Instagram to Telegram Auto Forwarder Bot (Ultra-Resilient Standalone Version)
 Features:
-- Dual-engine scraping: Public embed crawler + Instaloader + yt-dlp fallback
-- Authenticated session support (INSTAGRAM_SESSION_ID) to bypass cloud datacenter 429 blocks
-- Direct Telegram Bot API client supporting Reels/Videos, Photos, and Albums
+- Multi-engine scraping:
+    1. Apify API (Residential Proxies - 100% bypass of datacenter 429 blocks)
+    2. Authenticated Instagram Session (INSTAGRAM_SESSION_ID)
+    3. Public embed crawler + yt-dlp fallback
+- Telegram Bot API client supporting Reels/Videos, Photos, and Albums
 - Automatic caption splitting (>1024 chars) with threaded continuation replies
 - WebP to JPEG automatic conversion for Telegram thumbnail compatibility
 - State tracking via state.json with automatic GitHub Actions persistence
@@ -58,6 +60,7 @@ class Config:
     telegram_bot_token: str
     telegram_chat_id: str
     instagram_username: str
+    apify_token: Optional[str] = None
     instagram_session_id: Optional[str] = None
     proxy_url: Optional[str] = None
     check_interval_seconds: int = 300
@@ -83,6 +86,11 @@ class Config:
             os.getenv("INSTAGRAM_USERNAME", "").strip()
             or os.getenv("IG_USERNAME", "").strip()
             or "atrbezan"
+        )
+        apify_token = (
+            os.getenv("APIFY_TOKEN", "").strip()
+            or os.getenv("APIFY_API_TOKEN", "").strip()
+            or None
         )
         session_id = (
             os.getenv("INSTAGRAM_SESSION_ID", "").strip()
@@ -111,15 +119,18 @@ class Config:
         ig_username = clean_username(ig_username)
 
         logger.info(f"✅ تنظیمات بارگذاری شد: پیج={ig_username} | کانال={chat_id}")
-        if session_id:
+        if apify_token:
+            logger.info("🚀 استفاده از سرویس Apify برای دور زدن ۱۰۰٪ بلاک دیتاسنتر فعال است.")
+        elif session_id:
             logger.info("🔑 نشست کوکی اینستاگرام (INSTAGRAM_SESSION_ID) فعال است.")
         else:
-            logger.info("ℹ️ در حال کار به صورت عمومی (بدون سکرت لاگین).")
+            logger.info("ℹ️ در حال کار به صورت عمومی (بدون سکرت لاگین یا Apify).")
 
         return cls(
             telegram_bot_token=bot_token,
             telegram_chat_id=chat_id,
             instagram_username=ig_username,
+            apify_token=apify_token,
             instagram_session_id=session_id,
             proxy_url=proxy_url,
             check_interval_seconds=int(os.getenv("CHECK_INTERVAL_SECONDS", "300")),
@@ -151,7 +162,6 @@ class StateManager:
     def mark_posted(self, shortcode: str):
         posted = self.load_posted_ids()
         posted.add(shortcode)
-        # Keep last 500 shortcodes to prevent excessive file growth
         posted_list = list(posted)[-500:]
         data = {
             "last_check_utc": datetime.now(timezone.utc).isoformat(),
@@ -184,7 +194,7 @@ class TelegramPoster:
                     logger.error(f"Telegram API Error [{error_code}]: {error_desc}")
 
                     if error_code == 401:
-                        logger.error("❌ توکن ربات تلگرام نامعتبر است! توکن دریافتی از @BotFather را بررسی کنید.")
+                        logger.error("❌ توکن ربات تلگرام نامعتبر است! توکن دریافتی از @BotFather را چک کنید.")
                     elif error_code == 400 and ("chat not found" in error_desc.lower() or "not enough rights" in error_desc.lower()):
                         logger.error(f"❌ کانال {self.chat_id} پیدا نشد یا ربات ادمین نیست! مطمئن شوید ربات در کانال ادمین با مجوز ارسال پیام است.")
 
@@ -323,12 +333,14 @@ class InstagramDownloader:
         self,
         target_username: str,
         download_dir: str = "downloads",
+        apify_token: Optional[str] = None,
         session_id: Optional[str] = None,
         proxy_url: Optional[str] = None,
     ):
         self.target_username = clean_username(target_username)
         self.download_dir = Path(download_dir).resolve()
         self.download_dir.mkdir(parents=True, exist_ok=True)
+        self.apify_token = apify_token
         self.session_id = session_id
         self.proxy_url = proxy_url
 
@@ -363,11 +375,53 @@ class InstagramDownloader:
             except Exception as e:
                 logger.warning(f"خطا در اعمال کوکی sessionid: {e}")
 
+    def _fetch_from_apify(self, limit: int = 5) -> List[dict]:
+        """Fetch posts via Apify Instagram Scraper (Residential proxies)."""
+        if not self.apify_token:
+            return []
+        logger.info(f"🌐 در حال دریافت پست‌ها از طریق Apify برای پیج {self.target_username}...")
+        url = "https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items"
+        params = {"token": self.apify_token, "timeout": 60}
+        payload = {
+            "directUrls": [f"https://www.instagram.com/{self.target_username}/"],
+            "resultsType": "posts",
+            "resultsLimit": limit,
+        }
+        try:
+            res = requests.post(url, params=params, json=payload, timeout=90)
+            if res.status_code == 200 or res.status_code == 201:
+                items = res.json()
+                logger.info(f"✅ تعداد {len(items)} آیتم از Apify دریافت شد.")
+                posts = []
+                for item in items:
+                    sc = item.get("shortCode") or item.get("shortcode")
+                    if not sc and item.get("url"):
+                        m = re.search(r'/(?:p|reel)/([A-Za-z0-9_-]+)', item["url"])
+                        if m:
+                            sc = m.group(1)
+                    if sc:
+                        posts.append({
+                            "shortcode": sc,
+                            "url": item.get("url") or f"https://www.instagram.com/reel/{sc}/",
+                            "is_video": item.get("isVideo", True),
+                            "typename": "GraphVideo" if item.get("isVideo", True) else "GraphImage",
+                            "caption": item.get("caption") or "",
+                            "date_utc": datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00")) if item.get("timestamp") else datetime.now(timezone.utc),
+                            "video_url": item.get("videoUrl"),
+                            "display_url": item.get("displayUrl"),
+                        })
+                return posts
+            else:
+                logger.warning(f"خطای پاسخ Apify: {res.status_code} - {res.text[:200]}")
+        except Exception as e:
+            logger.warning(f"خطا در اتصال به Apify: {e}")
+        return []
+
     def _fetch_shortcodes(self) -> List[str]:
         """Fetch shortcodes via public embed interface with multiple fallback user-agents."""
         url = f"https://www.instagram.com/{self.target_username}/embed/"
         user_agents = [
-            None,  # Standard requests UA
+            None,
             "curl/7.88.1",
             "TelegramBot (like TwitterBot)",
             "facebookexternalhit/1.1 (+https://www.facebook.com/externalhit_uatext.php)",
@@ -381,7 +435,6 @@ class InstagramDownloader:
         for ua in user_agents:
             headers = {"User-Agent": ua} if ua else {}
             try:
-                logger.info(f"بررسی اینترفیس عمومی اینستاگرام ({ua or 'default'})...")
                 res = requests.get(url, headers=headers, cookies=cookies, timeout=12)
                 if res.status_code == 200:
                     pattern = r'shortcode_media\\":\{.*?\\"shortcode\\":\\"([A-Za-z0-9_-]+)\\"'
@@ -393,10 +446,8 @@ class InstagramDownloader:
                     if shortcodes:
                         logger.info(f"✅ شورت‌کدهای استخراج شده از اینستاگرام: {shortcodes}")
                         return shortcodes
-                else:
-                    logger.warning(f"پاسخ کد {res.status_code} از اینترفیس اینستاگرام.")
-            except Exception as e:
-                logger.warning(f"خطا در اتصال به اینترفیس اینستاگرام: {e}")
+            except Exception:
+                pass
 
         return []
 
@@ -409,26 +460,30 @@ class InstagramDownloader:
                 res = subprocess.run(cmd, capture_output=True, text=True, timeout=25)
                 if res.returncode == 0 and res.stdout.strip():
                     return json.loads(res.stdout.strip())
-            except Exception as e:
-                logger.warning(f"خطا در متادیتا yt-dlp برای {shortcode}: {e}")
+            except Exception:
+                pass
         return None
 
     def get_latest_posts(self, limit: int = 5) -> List[Union[instaloader.Post, dict]]:
-        """Fetch latest posts using multiple fallback strategies."""
+        # 1. Try Apify if configured
+        if self.apify_token:
+            apify_posts = self._fetch_from_apify(limit=limit)
+            if apify_posts:
+                return apify_posts
+
+        # 2. Try embed interface shortcodes
         shortcodes = self._fetch_shortcodes()
         posts = []
 
         if shortcodes:
             for sc in shortcodes[:limit]:
-                # 1. Try instaloader
                 try:
                     p = instaloader.Post.from_shortcode(self.loader.context, sc)
                     posts.append(p)
                     continue
-                except Exception as e:
-                    logger.warning(f"Instaloader failed for {sc}: {e}. Trying yt-dlp...")
+                except Exception:
+                    pass
 
-                # 2. Try yt-dlp
                 meta = self._get_ytdlp_metadata(sc)
                 if meta:
                     posts.append(
@@ -445,8 +500,7 @@ class InstagramDownloader:
             if posts:
                 return posts
 
-        # Fallback to Profile.get_posts (especially reliable with sessionid)
-        logger.info(f"در حال استفاده از روش جایگزین Profile.get_posts برای @{self.target_username}...")
+        # 3. Fallback to Profile.get_posts
         try:
             profile = instaloader.Profile.from_username(self.loader.context, self.target_username)
             for p in profile.get_posts():
@@ -467,14 +521,12 @@ class InstagramDownloader:
             return thumb_path
         if not HAS_PIL:
             return thumb_path
-        # Convert webp or png to jpg
         try:
             target_jpg = os.path.splitext(thumb_path)[0] + ".jpg"
             with Image.open(thumb_path) as img:
                 img.convert("RGB").save(target_jpg, "JPEG", quality=90)
             return target_jpg
-        except Exception as e:
-            logger.warning(f"خطا در تبدیل تصویر بندانگشتی به JPEG: {e}")
+        except Exception:
             return thumb_path
 
     def download_post(self, post_item: Union[instaloader.Post, dict]) -> InstagramPostItem:
@@ -500,14 +552,12 @@ class InstagramDownloader:
 
         logger.info(f"📥 شروع دانلود رسانه {sc} ({typename})...")
 
-        # Attempt 1: Instaloader (if object is available)
         if isinstance(post_item, instaloader.Post):
             try:
                 self.loader.download_post(post_item, target=sc)
-            except Exception as e:
-                logger.warning(f"دانلود با Instaloader برای {sc} با خطا مواجه شد: {e}")
+            except Exception:
+                pass
 
-        # Check files
         videos = sorted(glob.glob(str(post_dir / "*.mp4")))
         images = sorted(
             glob.glob(str(post_dir / "*.jpg"))
@@ -515,7 +565,7 @@ class InstagramDownloader:
             + glob.glob(str(post_dir / "*.webp"))
         )
 
-        # Attempt 2: yt-dlp fallback if no video found and post is video
+        # Fallback to yt-dlp if video is missing
         if is_video and not videos:
             logger.info(f"دانلود ویدیو با yt-dlp برای {sc}...")
             out_tmpl = str(post_dir / f"{sc}.%(ext)s")
@@ -583,6 +633,7 @@ class InstagramTelegramAgent:
         self.ig = InstagramDownloader(
             config.instagram_username,
             config.download_dir,
+            apify_token=config.apify_token,
             session_id=config.instagram_session_id,
             proxy_url=config.proxy_url,
         )
@@ -620,12 +671,15 @@ class InstagramTelegramAgent:
         recent_posts = self.ig.get_latest_posts(limit=self.config.max_posts_per_check)
 
         if not recent_posts:
-            logger.warning(
-                "⚠️ هیچ پستی از اینستاگرام دریافت نشد!\n"
-                "علت: اینستاگرام ممکن است آی‌پی‌های عمومی دیتاسنترهای ابری گیت‌هاب (Microsoft Azure) را مسدود یا محدود (429) کرده باشد.\n"
-                "💡 راه‌حل قطعی و دائمی: اضافه کردن سکرت INSTAGRAM_SESSION_ID در گیت‌هاب."
+            msg = (
+                "❌ خطای عدم دسترسی: سرورهای گیت‌هاب (Microsoft Azure) توسط اینستاگرام مسدود شده‌اند (کد ۴۲۹ یا ریدایرکت به لاگین).\n"
+                "به همین دلیل هیچ پستی از اینستاگرام دریافت نشد.\n\n"
+                "💡 راه‌حل قطعی و ۱۰۰٪ رایگان:\n"
+                "سکرت APIFY_TOKEN یا INSTAGRAM_SESSION_ID را در تنظیمات گیت‌هاب اضافه کنید تا درخواست‌ها مسدود نشوند."
             )
-            return
+            logger.error(msg)
+            # Exit with code 1 so GitHub Actions shows the error clearly!
+            sys.exit(1)
 
         new_posts = []
         for p in recent_posts:
