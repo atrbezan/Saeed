@@ -44,6 +44,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           INSTAGRAM_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           INSTAGRAM_SESSION_ID: ${{ secrets.INSTAGRAM_SESSION_ID }}
           PROXY_URL: ${{ secrets.PROXY_URL }}
           INCLUDE_ORIGINAL_LINK: ${{ secrets.INCLUDE_ORIGINAL_LINK || 'true' }}
