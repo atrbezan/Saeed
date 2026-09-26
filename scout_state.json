@@ -3270,6 +3270,25 @@
    "score": -22,
    "published": "2020-01-27T12:56:46+00:00",
    "seen_at": "2026-09-26T22:39:53+00:00"
+  },
+  "c93255a487dfc80f": {
+   "id": "c93255a487dfc80f",
+   "url": "https://news.google.com/rss/articles/CBMioAFBVV95cUxQMnF6ZlVZSXZJNjNWb3J0ZmtTWU5UN1JuQVNoWEtoY2wtRWJ5TWw5d2VLOEJJUE1iNi1IdnlxUmR3R1JoZDBtbnpxdmt1WjNnUTR5RnJrN001Tl9uamQ2endnNGZBZDRqXy1GRVBZOURqR3FaanJuVjBpdHZyMUtJR1VTUDB0ZFFHb214aXVhMFMwUjBWSVZWNzlDcUtqaV9U?oc=5",
+   "title": "PUMA signs global fragrance deal with Interparfums",
+   "fp": [
+    "deal",
+    "fragrance",
+    "global",
+    "interparfums",
+    "puma",
+    "signs"
+   ],
+   "src": "Google News — عطر سلبریتی‌ها",
+   "pub": "Sporting Goods Intelligence Europe",
+   "cat": "general",
+   "score": 6,
+   "published": "2026-09-24T11:49:26+00:00",
+   "seen_at": "2026-09-26T22:47:01+00:00"
   }
  },
  "seen_order": [
@@ -3430,7 +3449,8 @@
   "aead418bd1e1f3c5",
   "4a08dde5122add8e",
   "d78fbdaf68122b8e",
-  "173478eed5aff099"
+  "173478eed5aff099",
+  "c93255a487dfc80f"
  ],
  "sent_ids": [],
  "sent_fps": {},
@@ -3450,9 +3470,9 @@
   },
   "gn:discontinued": {
    "fails": 0,
-   "quiet_runs": 1,
-   "next_ok": 1790472583.8485713,
-   "last_run": "2026-09-26T22:40:43+00:00"
+   "quiet_runs": 2,
+   "next_ok": 1790479099.251393,
+   "last_run": "2026-09-26T22:47:07+00:00"
   },
   "gn:sales-viral": {
    "fails": 0,
@@ -3468,9 +3488,9 @@
   },
   "gn:blunder": {
    "fails": 0,
-   "quiet_runs": 0,
-   "next_ok": 1790466569.958451,
-   "last_run": "2026-09-26T22:01:28+00:00"
+   "quiet_runs": 1,
+   "next_ok": 1790472618.9841413,
+   "last_run": "2026-09-26T22:46:57+00:00"
   },
   "gn:people": {
    "fails": 0,
@@ -3481,14 +3501,14 @@
   "gn:celebrity": {
    "fails": 0,
    "quiet_runs": 0,
-   "next_ok": 1790466704.5575063,
-   "last_run": "2026-09-26T22:31:09+00:00"
+   "next_ok": 1790468373.7536654,
+   "last_run": "2026-09-26T22:47:01+00:00"
   },
   "bing:spicy": {
    "fails": 0,
-   "quiet_runs": 1,
-   "next_ok": 1790474571.6432304,
-   "last_run": "2026-09-26T22:31:14+00:00"
+   "quiet_runs": 2,
+   "next_ok": 1790487268.8096893,
+   "last_run": "2026-09-26T22:47:16+00:00"
   },
   "bing:sales": {
    "fails": 0,
@@ -3498,15 +3518,15 @@
   },
   "fragrantica:news": {
    "fails": 0,
-   "quiet_runs": 0,
-   "next_ok": 1790468653.761836,
-   "last_run": "2026-09-26T22:31:20+00:00"
+   "quiet_runs": 1,
+   "next_ok": 1790480821.7825406,
+   "last_run": "2026-09-26T22:47:04+00:00"
   },
   "reddit:fragrance:top": {
    "fails": 0,
-   "quiet_runs": 0,
-   "next_ok": 1790473785.5119848,
-   "last_run": "2026-09-26T22:31:23+00:00"
+   "quiet_runs": 1,
+   "next_ok": 1790483625.1871572,
+   "last_run": "2026-09-26T22:47:11+00:00"
   },
   "reddit:fragrance:hot": {
    "fails": 0,
@@ -3529,7 +3549,7 @@
  },
  "last_digest": {},
  "stats": {
-  "total_collected": 158,
+  "total_collected": 159,
   "digests_sent": 0
  }
 }
