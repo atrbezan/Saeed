@@ -3458,15 +3458,15 @@
  "feeds": {
   "gn:scandal": {
    "fails": 0,
-   "quiet_runs": 1,
-   "next_ok": 1790474651.6834567,
-   "last_run": "2026-09-26T22:40:46+00:00"
+   "quiet_runs": 2,
+   "next_ok": 1790479396.6834552,
+   "last_run": "2026-09-26T22:56:06+00:00"
   },
   "gn:bans": {
    "fails": 0,
-   "quiet_runs": 1,
-   "next_ok": 1790475240.0573533,
-   "last_run": "2026-09-26T22:40:51+00:00"
+   "quiet_runs": 2,
+   "next_ok": 1790482400.428305,
+   "last_run": "2026-09-26T22:56:17+00:00"
   },
   "gn:discontinued": {
    "fails": 0,
@@ -3476,9 +3476,9 @@
   },
   "gn:sales-viral": {
    "fails": 0,
-   "quiet_runs": 1,
-   "next_ok": 1790474739.250359,
-   "last_run": "2026-09-26T22:40:35+00:00"
+   "quiet_runs": 2,
+   "next_ok": 1790477478.8785233,
+   "last_run": "2026-09-26T22:56:10+00:00"
   },
   "gn:weird": {
    "fails": 0,
@@ -3488,21 +3488,21 @@
   },
   "gn:blunder": {
    "fails": 0,
-   "quiet_runs": 1,
-   "next_ok": 1790472618.9841413,
-   "last_run": "2026-09-26T22:46:57+00:00"
+   "quiet_runs": 2,
+   "next_ok": 1790483112.3628843,
+   "last_run": "2026-09-26T22:56:03+00:00"
   },
   "gn:people": {
    "fails": 0,
-   "quiet_runs": 1,
-   "next_ok": 1790475079.0857372,
-   "last_run": "2026-09-26T22:40:55+00:00"
+   "quiet_runs": 2,
+   "next_ok": 1790480702.1268957,
+   "last_run": "2026-09-26T22:56:14+00:00"
   },
   "gn:celebrity": {
    "fails": 0,
-   "quiet_runs": 0,
-   "next_ok": 1790468373.7536654,
-   "last_run": "2026-09-26T22:47:01+00:00"
+   "quiet_runs": 1,
+   "next_ok": 1790476631.719976,
+   "last_run": "2026-09-26T22:56:00+00:00"
   },
   "bing:spicy": {
    "fails": 0,
