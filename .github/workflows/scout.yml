@@ -44,8 +44,7 @@ jobs:
 
       - name: Run scout
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN
           SCOUT_DIGEST_HOUR: ${{ vars.SCOUT_DIGEST_HOUR || '9' }}
           SCOUT_DIGEST_MINUTE: ${{ vars.SCOUT_DIGEST_MINUTE || '30' }}
           SCOUT_MIN_SCORE: ${{ vars.SCOUT_MIN_SCORE || '25' }}
