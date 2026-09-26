@@ -1,0 +1,8 @@
+# secrets & local config
+.env
+cookies.txt
+
+# runtime artifacts
+downloads/
+*.pyc
+__pycache__/

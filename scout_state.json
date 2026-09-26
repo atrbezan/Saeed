@@ -1,0 +1,14 @@
+{
+ "version": 1,
+ "seen": {},
+ "seen_order": [],
+ "sent_ids": [],
+ "sent_fps": {},
+ "evergreen_sent": [],
+ "feeds": {},
+ "last_digest": {},
+ "stats": {
+  "total_collected": 0,
+  "digests_sent": 0
+ }
+}
