@@ -39,12 +39,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # the scout only needs these two (keeps the job fast)
           pip install "requests>=2.31.0" "python-dotenv>=1.0.0"
 
       - name: Run scout
         env:
-          TELEGRAM_BOT_TOKEN
+          TELEGRAM_BOT_TOKEN: ${{ secrets.SCOUT_TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.SCOUT_TELEGRAM_CHAT_ID }}
           SCOUT_DIGEST_HOUR: ${{ vars.SCOUT_DIGEST_HOUR || '9' }}
           SCOUT_DIGEST_MINUTE: ${{ vars.SCOUT_DIGEST_MINUTE || '30' }}
           SCOUT_MIN_SCORE: ${{ vars.SCOUT_MIN_SCORE || '25' }}
