@@ -1,0 +1,76 @@
+name: Perfume News Scout
+
+on:
+  schedule:
+    # Crawl every 30 minutes + send the daily digest when it's due in Tehran.
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'auto = crawl + digest-if-due | crawl = only crawl | digest = force digest now'
+        required: false
+        default: 'auto'
+        type: choice
+        options: [auto, crawl, digest]
+
+concurrency:
+  group: perfume-scout
+  cancel-in-progress: false
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # needed to commit scout_state.json (the archive) back
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # the scout only needs these two (keeps the job fast)
+          pip install "requests>=2.31.0" "python-dotenv>=1.0.0"
+
+      - name: Run scout
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SCOUT_DIGEST_HOUR: ${{ vars.SCOUT_DIGEST_HOUR || '9' }}
+          SCOUT_DIGEST_MINUTE: ${{ vars.SCOUT_DIGEST_MINUTE || '30' }}
+          SCOUT_MIN_SCORE: ${{ vars.SCOUT_MIN_SCORE || '25' }}
+          SCOUT_LLM_API_KEY: ${{ secrets.SCOUT_LLM_API_KEY }}
+          SCOUT_LLM_BASE_URL: ${{ vars.SCOUT_LLM_BASE_URL }}
+          SCOUT_LLM_MODEL: ${{ vars.SCOUT_LLM_MODEL }}
+        run: |
+          MODE="${{ github.event.inputs.mode || 'auto' }}"
+          case "$MODE" in
+            crawl)  python scout.py --single-run ;;
+            digest) python scout.py --digest-now ;;
+            *)      python scout.py --single-run ;;
+          esac
+
+      - name: Commit & push updated archive
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin "${GITHUB_REF_NAME}" || true
+          if [ -f scout_state.json ]; then
+            git add scout_state.json
+            if ! git diff-index --quiet HEAD; then
+              git commit -m "chore(scout): update archive [skip ci]"
+              git push
+            else
+              echo "No new archive changes."
+            fi
+          fi
